@@ -1,0 +1,237 @@
+# import tkinter as tk
+# from tkinter import filedialog, messagebox
+# from PIL import Image, ImageTk
+# from reportlab.lib.pagesizes import letter
+# from reportlab.pdfgen import canvas
+# import os
+
+# class ImageToPDFApp:
+#     def __init__(self, root):
+#         self.root = root
+#         self.root.title("Image to PDF Converter")
+#         self.root.geometry("400x300")
+
+#         self.images = []
+#         self.pdf_path = ""
+
+#         self.select_button = tk.Button(self.root, text="Select Images", command=self.select_images)
+#         self.select_button.pack(pady=20)
+
+#         self.convert_hd_button = tk.Button(self.root, text="Convert to HD", state=tk.DISABLED, command=self.convert_to_hd)
+#         self.convert_hd_button.pack(pady=10)
+
+#         self.generate_pdf_button = tk.Button(self.root, text="Generate PDF", state=tk.DISABLED, command=self.generate_pdf)
+#         self.generate_pdf_button.pack(pady=10)
+
+#         self.share_button = tk.Button(self.root, text="Share PDF", state=tk.DISABLED, command=self.share_pdf)
+#         self.share_button.pack(pady=10)
+
+#     def select_images(self):
+#         file_paths = filedialog.askopenfilenames(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")])
+#         if file_paths:
+#             self.images = list(file_paths)
+#             self.convert_hd_button.config(state=tk.NORMAL)
+#             self.generate_pdf_button.config(state=tk.NORMAL)
+
+#     def convert_to_hd(self):
+#         """Resize images to HD quality (1920x1080)"""
+#         hd_images = []
+#         for img_path in self.images:
+#             img = Image.open(img_path)
+#             img = img.resize((1920, 1080), Image.ANTIALIAS)  # Resize to HD
+#             hd_path = f"hd_{os.path.basename(img_path)}"
+#             img.save(hd_path)
+#             hd_images.append(hd_path)
+        
+#         self.images = hd_images  # Update images to the HD versions
+#         messagebox.showinfo("Success", "Images converted to HD quality!")
+
+#     def generate_pdf(self):
+#         """Generate PDF from images"""
+#         if not self.images:
+#             messagebox.showerror("Error", "No images selected!")
+#             return
+        
+#         pdf_path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF Files", "*.pdf")])
+#         if pdf_path:
+#             c = canvas.Canvas(pdf_path, pagesize=letter)
+#             width, height = letter  # Size of PDF page
+
+#             for img_path in self.images:
+#                 img = Image.open(img_path)
+#                 img_width, img_height = img.size
+
+#                 # Scale image to fit the page (keeping aspect ratio)
+#                 aspect_ratio = img_width / float(img_height)
+#                 pdf_width = width
+#                 pdf_height = width / aspect_ratio
+#                 if pdf_height > height:
+#                     pdf_height = height
+#                     pdf_width = height * aspect_ratio
+
+#                 c.drawImage(img_path, 0, height - pdf_height, pdf_width, pdf_height)
+#                 c.showPage()  # New page for each image
+
+#             c.save()
+#             self.pdf_path = pdf_path
+#             messagebox.showinfo("Success", f"PDF generated at {pdf_path}!")
+#             self.share_button.config(state=tk.NORMAL)
+
+#     def share_pdf(self):
+#         """Share the generated PDF (for simplicity, just open the file location)"""
+#         if not self.pdf_path:
+#             messagebox.showerror("Error", "No PDF to share!")
+#             return
+        
+#         os.startfile(self.pdf_path)  # Opens the PDF file using the default PDF viewer
+
+# # Main function to run the Tkinter app
+# if __name__ == "__main__":
+#     root = tk.Tk()
+#     app = ImageToPDFApp(root)
+#     root.mainloop()
+
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+from PIL import Image, ImageTk
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+import os
+
+class ImageToPDFApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Image to PDF Converter")
+        self.root.geometry("600x500")
+        self.root.config(bg="#f0f0f0")
+
+        self.images = []
+        self.hd_images = []
+        self.pdf_path = ""
+
+        # Creating the GUI components
+        self.create_widgets()
+
+    def create_widgets(self):
+        """Create the main widgets for the app."""
+        # Frame for buttons and image preview
+        self.frame = tk.Frame(self.root, bg="#f0f0f0")
+        self.frame.grid(row=0, column=0, padx=20, pady=20)
+
+        # Button to select images
+        self.select_button = tk.Button(self.frame, text="Select Images", width=20, height=2, bg="#4CAF50", fg="white", command=self.select_images)
+        self.select_button.grid(row=0, column=0, pady=10)
+
+        # Label for displaying selected images
+        self.image_label = tk.Label(self.frame, text="No images selected", width=50, height=2, bg="#e0e0e0", anchor="w")
+        self.image_label.grid(row=1, column=0, pady=10)
+
+        # Button to convert to HD
+        self.convert_hd_button = tk.Button(self.frame, text="Convert to HD", width=20, height=2, state=tk.DISABLED, bg="#2196F3", fg="white", command=self.convert_to_hd)
+        self.convert_hd_button.grid(row=2, column=0, pady=10)
+
+        # Progress Bar for conversion
+        self.progress_bar = ttk.Progressbar(self.frame, orient="horizontal", length=200, mode="indeterminate")
+        self.progress_bar.grid(row=3, column=0, pady=10)
+
+        # Button to generate PDF
+        self.generate_pdf_button = tk.Button(self.frame, text="Generate PDF", width=20, height=2, state=tk.DISABLED, bg="#FF9800", fg="white", command=self.generate_pdf)
+        self.generate_pdf_button.grid(row=4, column=0, pady=10)
+
+        # Button to share PDF
+        self.share_button = tk.Button(self.frame, text="Share PDF", width=20, height=2, state=tk.DISABLED, bg="#9C27B0", fg="white", command=self.share_pdf)
+        self.share_button.grid(row=5, column=0, pady=10)
+
+        # Image Canvas for HD image preview
+        self.canvas = tk.Canvas(self.frame, width=200, height=200, bg="#e0e0e0")
+        self.canvas.grid(row=6, column=0, pady=10)
+
+    def select_images(self):
+        """Select images and display them."""
+        file_paths = filedialog.askopenfilenames(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")])
+        if file_paths:
+            self.images = list(file_paths)
+            self.hd_images = []
+            self.display_selected_images()
+            self.convert_hd_button.config(state=tk.NORMAL)
+            self.generate_pdf_button.config(state=tk.NORMAL)
+
+    def display_selected_images(self):
+        """Display selected image file names in the label."""
+        image_names = "\n".join([os.path.basename(img) for img in self.images])
+        self.image_label.config(text=f"Selected Images:\n{image_names}")
+
+    def convert_to_hd(self):
+        """Convert selected images to HD quality and show a preview."""
+        self.progress_bar.start()  # Start progress bar
+        hd_images = []
+        for img_path in self.images:
+            img = Image.open(img_path)
+            img = img.resize((1920, 1080), Image.ANTIALIAS)  # Resize to HD
+            hd_path = f"hd_{os.path.basename(img_path)}"
+            img.save(hd_path)
+            hd_images.append(hd_path)
+
+        self.hd_images = hd_images  # Update images to the HD versions
+
+        # Show the first HD image on the canvas
+        self.show_hd_preview(self.hd_images[0])
+
+        self.progress_bar.stop()  # Stop progress bar
+        messagebox.showinfo("Success", "Images converted to HD quality!")
+        self.share_button.config(state=tk.NORMAL)
+
+    def show_hd_preview(self, hd_image_path):
+        """Show the preview of the HD image on the canvas."""
+        img = Image.open(hd_image_path)
+        img.thumbnail((200, 200))  # Resize the image for the canvas
+        img_tk = ImageTk.PhotoImage(img)
+        self.canvas.create_image(100, 100, image=img_tk)
+        self.canvas.image = img_tk  # Keep a reference to the image object
+
+    def generate_pdf(self):
+        """Generate PDF from HD images."""
+        if not self.hd_images:
+            messagebox.showerror("Error", "No images to generate PDF!")
+            return
+        
+        self.progress_bar.start()  # Start progress bar
+        pdf_path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF Files", "*.pdf")])
+        if pdf_path:
+            c = canvas.Canvas(pdf_path, pagesize=letter)
+            width, height = letter  # Size of PDF page
+
+            for img_path in self.hd_images:
+                img = Image.open(img_path)
+                img_width, img_height = img.size
+
+                # Scale image to fit the page (keeping aspect ratio)
+                aspect_ratio = img_width / float(img_height)
+                pdf_width = width
+                pdf_height = width / aspect_ratio
+                if pdf_height > height:
+                    pdf_height = height
+                    pdf_width = height * aspect_ratio
+
+                c.drawImage(img_path, 0, height - pdf_height, pdf_width, pdf_height)
+                c.showPage()  # New page for each image
+
+            c.save()
+            self.pdf_path = pdf_path
+            self.progress_bar.stop()  # Stop progress bar
+            messagebox.showinfo("Success", f"PDF generated at {pdf_path}!")
+            self.share_button.config(state=tk.NORMAL)
+
+    def share_pdf(self):
+        """Share the generated PDF."""
+        if not self.pdf_path:
+            messagebox.showerror("Error", "No PDF to share!")
+            return
+        
+        os.startfile(self.pdf_path)  # Opens the PDF file using the default PDF viewer
+
+# Main function to run the Tkinter app
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = ImageToPDFApp(root)
+    root.mainloop()
